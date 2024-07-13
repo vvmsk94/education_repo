@@ -1,7 +1,8 @@
-#include "hello.h"
+#include "IpFilter.h"
 
-int main()
-{
-	Hello h;
-	return 0;
+int main() {
+  IP_Filter filter;
+  filter.survey();
+
+  return 0;
 }
