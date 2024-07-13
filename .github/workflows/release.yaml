@@ -30,9 +30,6 @@ jobs:
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-    - name: Build project # This would actually build your project, using zip for an example artifact
-      run: |
-          zip --junk-paths my-artifact MyApp
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
