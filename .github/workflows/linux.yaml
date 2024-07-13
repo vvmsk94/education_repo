@@ -1,7 +1,8 @@
-name: Release
+name: Linux
 
 on:
   push:
+  pull_request:
     branches: [ homework_2 ]
 
 env:
@@ -19,11 +20,18 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install tools
-      run: sudo apt-get install -y clang-format clang-tidy
+      run: sudo apt update -y && sudo apt install libc++abi-dev && sudo apt install -y clang-format clang-tidy python3-pip g++ cmake
+    - name: chmod format_sh
+      run: sudo chmod 777 ${{github.workspace}}/format.sh
+    - name: Coding Style checks
+      run: ${{github.workspace}}/format.sh check
+
+    #- name: Install conan
+    #  run: pip install conan==1.59
     
-    #- name: Coding Style checks
-    #  run: ${{github.workspace}}/format.sh check
-      
+    #- name: Install libc
+    #  run: sudo apt install libc++abi-dev
+    
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
@@ -36,27 +44,3 @@ jobs:
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-    - name: Pack
-      run: cpack --config ${{github.workspace}}/build/CPackConfig.cmake
-
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.run_number }}
-        release_name: Release ${{ github.run_number }}
-        draft: false
-        prerelease: false
-    - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./ip_filter-0.0.${{ github.run_number }}-Linux.deb
-        asset_name: ip_filter-0.0.${{ github.run_number }}-Linux.deb
-        asset_content_type: application/vnd.debian.binary-package
