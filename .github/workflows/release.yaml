@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    branches: [ homework_2 ]
+    branches: [ main ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
