@@ -1,8 +1,7 @@
 #pragma once
 #include <iostream>
 
-class Hello
-{
+class Hello {
 public:
-    Hello();
+  Hello();
 };
