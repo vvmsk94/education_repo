@@ -30,9 +30,6 @@ jobs:
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-    - name: Build project # This would actually build your project, using zip for an example artifact
-      run: |
-          zip --junk-paths my-artifact README.md
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -50,6 +47,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./my-artifact.zip
-        asset_name: my-artifact.zip
-        asset_content_type: application/zip
+        asset_path: ./MyApp-Linux.deb
+        asset_name: MyApp-Linux.deb
+        asset_content_type: application/vnd.debian.binary-package
