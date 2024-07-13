@@ -34,6 +34,9 @@ jobs:
     - name: Pack
       run: cpack --config ${{github.workspace}}/build/CPackConfig.cmake
 
+    - name: Show ls la
+      run: ls -la
+
     
     - name: Create Release
       id: create_release
