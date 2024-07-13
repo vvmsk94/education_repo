@@ -30,6 +30,8 @@ jobs:
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+    - name: Pack
+      run: cpack --config ${{github.workspace}}/build/CPackConfig.cmake
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -47,6 +49,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./${{ github.run_number }}-Linux.deb
-        asset_name: ${{ github.run_number }}-Linux.deb
+        asset_path: ./MyApp-0.0.${{ github.run_number }}-Linux.deb
+        asset_name: MyApp-0.0.${{ github.run_number }}-Linux.deb
         asset_content_type: application/vnd.debian.binary-package
