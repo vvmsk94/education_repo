@@ -9,3 +9,5 @@ add_executable(MyApp
 )
 
 target_compile_features(MyApp PUBLIC cxx_std_11)
+
+include(CPack)
