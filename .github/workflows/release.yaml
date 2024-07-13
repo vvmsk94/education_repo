@@ -44,6 +44,8 @@ jobs:
     - name: Create ls -la
       run: ls -la
     - name: cd build
+      run: cd build
+    - name: Create2 ls -la
       run: ls -la
 
     - name: Upload Release Asset
