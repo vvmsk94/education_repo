@@ -11,5 +11,6 @@ ctest --test-dir build
 ```
 
 # Update gtest
-
+```
 git submodule update --init --recursive
+```

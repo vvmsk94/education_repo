@@ -24,8 +24,13 @@ IP_Filter::IP_Filter() {
           atoi(line.substr(pointsIndex[1] + 1, pointsIndex[2]).c_str());
       octets.fourth =
           atoi(line.substr(pointsIndex[2] + 1, line.size()).c_str());
-
-      VecStr.push_back(octets);
+	  if((octets.first > 0 && octets.first < 256) && (octets.second > 0 && octets.second < 256) 
+                && (octets.third > 0 && octets.third < 256) && (octets.fourth > 0 && octets.fourth < 256))
+                VecStr.push_back(octets);
+      else
+      {
+          std::cout << "Uncurrent ip-address, try again" << std::endl;
+      }
     }
 
   } else {
@@ -33,6 +38,9 @@ IP_Filter::IP_Filter() {
     std::cout << "File doesn't exist ..." << std::endl;
   }
   in.close();
+  
+  std::sort(VecStr.begin(), VecStr.end(), [](const Octets& a, const Octets& b) {return a.first < b.first; });
+  std::reverse(VecStr.begin(), VecStr.end());
 }
 
 void IP_Filter::survey() {

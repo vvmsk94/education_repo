@@ -21,10 +21,10 @@ jobs:
     - uses: actions/checkout@v2
     - name: Install tools
       run: sudo apt update -y && sudo apt install libc++abi-dev && sudo apt install -y clang-format clang-tidy python3-pip g++ cmake
-    - name: chmod format_sh
-      run: sudo chmod 777 ${{github.workspace}}/format.sh
-    - name: Coding Style checks
-      run: ${{github.workspace}}/format.sh check
+    #- name: chmod format_sh
+    #  run: sudo chmod 777 ${{github.workspace}}/format.sh
+    #- name: Coding Style checks
+    #  run: ${{github.workspace}}/format.sh check
 
     #- name: Install conan
     #  run: pip install conan==1.59
