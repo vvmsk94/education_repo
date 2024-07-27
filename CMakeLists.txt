@@ -6,7 +6,7 @@ else()
   set(PATCH_NUM 0)
 endif()
 
-project(ip_filter
+project(my_allocator
   LANGUAGES CXX
   VERSION 0.0.${PATCH_NUM}
 )
@@ -18,17 +18,14 @@ include_directories(${CMAKE_BINARY_DIR})
 
 option(BUILD_TESTS "Build unittests" OFF)
 
-add_executable(ip_filter
+add_executable(my_allocator
 			         src/main.cpp
-			         src/IpFilter.h
-			         src/IpFilter.cpp
+			         src/allocator.h
+			         src/list.h
 )
 
-target_compile_features(ip_filter PUBLIC cxx_std_14)
-
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ip_filter.tsv
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Debug)
-	 
+target_compile_features(my_allocator PUBLIC cxx_std_14)
+ 
 
 if(BUILD_TESTS)
     enable_testing()
@@ -61,7 +58,7 @@ if(BUILD_TESTS)
 		set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 	
 		target_compile_options(
-			ip_filter PRIVATE
+			my_allocator PRIVATE
 			/W4
 		)
 		target_compile_options(
@@ -70,7 +67,7 @@ if(BUILD_TESTS)
 		)
   else ()
     target_compile_options(
-        ip_filter PRIVATE
+        my_allocator PRIVATE
         -Wall -Wextra -pedantic -Werror
     )
     target_compile_options(
@@ -80,19 +77,14 @@ if(BUILD_TESTS)
 	endif()
 endif()
 
-install(TARGETS ip_filter RUNTIME DESTINATION bin)
-set(targetDestDir "bin")
+install(TARGETS my_allocator RUNTIME DESTINATION bin)
+
 set(CPACK_GENERATOR DEB)
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 
 set(CPACK_PACKAGE_CONTACT example@example.com)
-
-install(
-    FILES "${CMAKE_CURRENT_SOURCE_DIR}/ip_filter.tsv" "${CMAKE_CURRENT_SOURCE_DIR}/ip_filter.tsv"
-    DESTINATION "${targetDestDir}"
-)
 
 include(CPack)
 
