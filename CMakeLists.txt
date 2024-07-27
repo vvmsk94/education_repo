@@ -6,7 +6,7 @@ else()
   set(PATCH_NUM 0)
 endif()
 
-project(my_allocator
+project(ip_filter2
   LANGUAGES CXX
   VERSION 0.0.${PATCH_NUM}
 )
@@ -18,13 +18,11 @@ include_directories(${CMAKE_BINARY_DIR})
 
 option(BUILD_TESTS "Build unittests" OFF)
 
-add_executable(my_allocator
-			         src/main.cpp
-			         src/allocator.h
-			         src/list.h
+add_executable(ip_filter2
+			     src/main.cpp
 )
 
-target_compile_features(my_allocator PUBLIC cxx_std_14)
+target_compile_features(ip_filter2 PUBLIC cxx_std_14)
  
 
 if(BUILD_TESTS)
@@ -58,7 +56,7 @@ if(BUILD_TESTS)
 		set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 	
 		target_compile_options(
-			my_allocator PRIVATE
+			ip_filter2 PRIVATE
 			/W4
 		)
 		target_compile_options(
@@ -67,7 +65,7 @@ if(BUILD_TESTS)
 		)
   else ()
     target_compile_options(
-        my_allocator PRIVATE
+        ip_filter2 PRIVATE
         -Wall -Wextra -pedantic -Werror
     )
     target_compile_options(
@@ -77,7 +75,7 @@ if(BUILD_TESTS)
 	endif()
 endif()
 
-install(TARGETS my_allocator RUNTIME DESTINATION bin)
+install(TARGETS ip_filter2 RUNTIME DESTINATION bin)
 
 set(CPACK_GENERATOR DEB)
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
