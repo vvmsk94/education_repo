@@ -6,7 +6,7 @@ else()
   set(PATCH_NUM 0)
 endif()
 
-project(ip_filter2
+project(matr
   LANGUAGES CXX
   VERSION 0.0.${PATCH_NUM}
 )
@@ -18,11 +18,11 @@ include_directories(${CMAKE_BINARY_DIR})
 
 option(BUILD_TESTS "Build unittests" OFF)
 
-add_executable(ip_filter2
+add_executable(matr
 			     src/main.cpp
 )
 
-target_compile_features(ip_filter2 PUBLIC cxx_std_14)
+target_compile_features(matr PUBLIC cxx_std_17)
  
 
 if(BUILD_TESTS)
@@ -30,19 +30,19 @@ if(BUILD_TESTS)
 	
 	# Test target
 	add_executable(
-    Hello
-    my_tests/test_hello.cpp
+    matr_test
+    src/tests.cpp
 	)
 
 	# Add src to the include directories for the test target
 	target_include_directories(
-    Hello PRIVATE
+    matr_test PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 	)
 
 	# Link test target against gtest libraries
 	target_link_libraries(
-    Hello PRIVATE
+    matr_test PRIVATE
     gtest gtest_main
 	)
 	
@@ -56,26 +56,26 @@ if(BUILD_TESTS)
 		set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 	
 		target_compile_options(
-			ip_filter2 PRIVATE
+			matr PRIVATE
 			/W4
 		)
 		target_compile_options(
-			Hello PRIVATE
+			matr_test PRIVATE
 			/W4
 		)
   else ()
     target_compile_options(
-        ip_filter2 PRIVATE
+        matr PRIVATE
         -Wall -Wextra -pedantic -Werror
     )
     target_compile_options(
-        Hello PRIVATE
+        matr_test PRIVATE
         -Wall -Wextra -pedantic -Werror
     )
 	endif()
 endif()
 
-install(TARGETS ip_filter2 RUNTIME DESTINATION bin)
+install(TARGETS matr RUNTIME DESTINATION bin)
 
 set(CPACK_GENERATOR DEB)
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
