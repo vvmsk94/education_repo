@@ -2,9 +2,9 @@ name: CMake
 
 on:
   push:
-    branches: [ "homework_4" ]
+    branches: [ "homework_8" ]
   pull_request:
-    branches: [ "homework_4" ]
+    branches: [ "homework_8" ]
 
 jobs:
   build:

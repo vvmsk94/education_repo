@@ -1,83 +1,73 @@
 cmake_minimum_required(VERSION 3.10)
 
-if(DEFINED ENV{GITHUB_RUN_NUMBER})
-  set(PATCH_NUM $ENV{GITHUB_RUN_NUMBER})
+
+if(DEFINED ENV{TRAVIS_BUILD_NUMBER})
+    project(08-bayan VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
 else()
-  set(PATCH_NUM 0)
+    project(08-bayan VERSION 0.0.1)
 endif()
-
-project(ip_filter2
-  LANGUAGES CXX
-  VERSION 0.0.${PATCH_NUM}
-)
-
-set(CMAKE_BUILD_TYPE Debug)
 
 configure_file(version.h.in version.h)
-include_directories(${CMAKE_BINARY_DIR})
+find_package(GTest REQUIRED)
+find_package(Boost COMPONENTS COMPONENTS program_options REQUIRED)
 
-option(BUILD_TESTS "Build unittests" OFF)
+set(HEADERS
+    src/filesystem_traverser.h
+    src/mask_filesystem_traverser.h
+    src/filesystem_path_hash.h
+    src/duplicate_finder.h)
 
-add_executable(ip_filter2
-			     src/main.cpp
+set(FILESYSTEM
+    src/mask_filesystem_traverser.cpp
+    src/filesystem_path_hash.cpp)
+
+set(HASH
+    src/hash/crc32.h
+    src/hash/crc16.h
+    src/hash/crc32.cpp
+    src/hash/crc16.cpp)
+
+set(SOURCES ${HEADERS} ${HASH} ${FILESYSTEM} src/main.cpp)
+set(TEST_SOURCES ${HASH} ${FILESYSTEM} test/tests.cpp)
+
+add_executable(08-bayan ${SOURCES})
+add_executable(tests ${TEST_SOURCES})
+file(COPY test/a DESTINATION ${CMAKE_BINARY_DIR})
+
+set_target_properties(08-bayan tests PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
 )
 
-target_compile_features(ip_filter2 PUBLIC cxx_std_14)
- 
+# add version.h
+target_include_directories(08-bayan PRIVATE "${CMAKE_BINARY_DIR}")
+target_link_libraries(08-bayan PRIVATE Boost::program_options stdc++fs)
 
-if(BUILD_TESTS)
-    enable_testing()
-	
-	# Test target
-	add_executable(
-    Hello
-    my_tests/test_hello.cpp
-	)
+target_include_directories(tests PRIVATE ${GTest_INCLUDE_DIR} src)
+target_link_libraries(tests PRIVATE gtest pthread stdc++fs)
 
-	# Add src to the include directories for the test target
-	target_include_directories(
-    Hello PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
-	)
-
-	# Link test target against gtest libraries
-	target_link_libraries(
-    Hello PRIVATE
-    gtest gtest_main
-	)
-	
-	add_subdirectory(
-		"${CMAKE_CURRENT_SOURCE_DIR}/googletests"
-		"googletests"
-	)
-	if (MSVC)
-		# @see https://github.com/google/googletest/blob/master/googletest/README.md
-		# Visual Studio Dynamic vs Static Runtimes
-		set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-	
-		target_compile_options(
-			ip_filter2 PRIVATE
-			/W4
-		)
-		target_compile_options(
-			Hello PRIVATE
-			/W4
-		)
-  else ()
-    target_compile_options(
-        ip_filter2 PRIVATE
-        -Wall -Wextra -pedantic -Werror
+if(MSVC)
+    target_compile_options(08-bayan PRIVATE
+        /W4
     )
-    target_compile_options(
-        Hello PRIVATE
-        -Wall -Wextra -pedantic -Werror
+    target_compile_options(tests PRIVATE
+        /W4
     )
-	endif()
+else()
+    target_compile_options(08-bayan PRIVATE
+        -Werror -Wall -Wimplicit-fallthrough -pedantic-errors
+    )
+    target_compile_options(tests PRIVATE
+        -Werror -Wall -Wimplicit-fallthrough -pedantic-errors
+    )
 endif()
 
-install(TARGETS ip_filter2 RUNTIME DESTINATION bin)
+
+install(TARGETS 08-bayan RUNTIME DESTINATION bin)
 
 set(CPACK_GENERATOR DEB)
+
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
@@ -86,3 +76,6 @@ set(CPACK_PACKAGE_CONTACT example@example.com)
 
 include(CPack)
 
+
+enable_testing()
+add_test(tests tests)
