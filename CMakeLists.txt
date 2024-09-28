@@ -1,83 +1,47 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.2)
 
-if(DEFINED ENV{GITHUB_RUN_NUMBER})
-  set(PATCH_NUM $ENV{GITHUB_RUN_NUMBER})
+
+if(DEFINED ENV{TRAVIS_BUILD_NUMBER})
+    project(05-paint VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
 else()
-  set(PATCH_NUM 0)
+    project(05-paint VERSION 0.0.1)
 endif()
-
-project(matr
-  LANGUAGES CXX
-  VERSION 0.0.${PATCH_NUM}
-)
-
-set(CMAKE_BUILD_TYPE Debug)
 
 configure_file(version.h.in version.h)
-include_directories(${CMAKE_BINARY_DIR})
 
-option(BUILD_TESTS "Build unittests" OFF)
+set(UTILS src/utils/point.h src/utils/color.h)
+set(SHAPES src/shape/shape.h src/shape/circle.h src/shape/rectangle.h src/shape/segment.h)
+set(DOCUMENT src/document/document.h src/document/file_io.h)
+set(APPLICATION src/application/application.h)
+set(RENDER src/render/renderable.h)
+set(SOURCES src/main.cpp ${SHAPES} ${DOCUMENT} ${RENDER} ${APPLICATION} ${UTILS})
 
-add_executable(matr
-			     src/main.cpp
+add_executable(05-paint ${SOURCES})
+
+set_target_properties(05-paint PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
 )
 
-target_compile_features(matr PUBLIC cxx_std_17)
- 
+# add version.h
+target_include_directories(05-paint PRIVATE "${CMAKE_BINARY_DIR}")
 
-if(BUILD_TESTS)
-    enable_testing()
-	
-	# Test target
-	add_executable(
-    matr_test
-    src/tests.cpp
-	)
-
-	# Add src to the include directories for the test target
-	target_include_directories(
-    matr_test PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
-	)
-
-	# Link test target against gtest libraries
-	target_link_libraries(
-    matr_test PRIVATE
-    gtest gtest_main
-	)
-	
-	add_subdirectory(
-		"${CMAKE_CURRENT_SOURCE_DIR}/googletests"
-		"googletests"
-	)
-	if (MSVC)
-		# @see https://github.com/google/googletest/blob/master/googletest/README.md
-		# Visual Studio Dynamic vs Static Runtimes
-		set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-	
-		target_compile_options(
-			matr PRIVATE
-			/W4
-		)
-		target_compile_options(
-			matr_test PRIVATE
-			/W4
-		)
-  else ()
-    target_compile_options(
-        matr PRIVATE
-        -Wall -Wextra -pedantic -Werror
+if(MSVC)
+    target_compile_options(05-paint PRIVATE
+        /W4
     )
-    target_compile_options(
-        matr_test PRIVATE
-        -Wall -Wextra -pedantic -Werror
+else()
+    target_compile_options(05-paint PRIVATE
+        -Werror -Wall -Wimplicit-fallthrough -pedantic-errors
     )
-	endif()
 endif()
 
-install(TARGETS matr RUNTIME DESTINATION bin)
+
+install(TARGETS 05-paint RUNTIME DESTINATION bin)
 
 set(CPACK_GENERATOR DEB)
+
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
@@ -85,4 +49,3 @@ set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 set(CPACK_PACKAGE_CONTACT example@example.com)
 
 include(CPack)
-
