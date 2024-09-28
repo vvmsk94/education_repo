@@ -1,44 +1,98 @@
-#include "matrix.h"
+#include "dummy_command_processor.h"
+#include "command_storage.h"
+#include "console_reader.h"
+#include "console_writer.h"
+#include "file_writer.h"
+
+#include <boost/program_options.hpp>
 
 #include <iostream>
-#include <array>
-#include <iomanip>
+#include <stdexcept>
 
-template <std::size_t size>
-std::ostream& operator<<(std::ostream& stream, const std::array<std::size_t, size>& arr)
+struct Context
 {
-    for (std::size_t elem : arr)
-        stream << '[' << elem << ']';
-    return stream;
+    std::size_t block_size;
+};
+
+struct Help : public std::exception
+{
+};
+
+struct Error : public std::exception
+{
+};
+
+Context parse_command_options(int argc, char* argv[])
+{
+    namespace po = boost::program_options;
+    po::options_description opt_desc("Allowed options");
+    opt_desc.add_options()
+        ("help",                                       "Print this message")
+        ("size", po::value<std::size_t>()->required(), "Command block size (integer, minimum 1)")
+    ;
+    po::positional_options_description pos_opt_desc;
+    pos_opt_desc.add("size", 1);
+
+    po::variables_map var_map;
+    try
+    {
+        auto parsed = po::command_line_parser(argc, argv)
+            .options(opt_desc)
+            .positional(pos_opt_desc)
+            .run();
+        po::store(parsed, var_map);
+        if (var_map.count("help") != 0)
+        {
+            std::cout << opt_desc << "\n";
+            throw Help{};
+        }
+        po::notify(var_map);
+    }
+    catch (const po::error& error)
+    {
+        std::cerr << "Error while parsing command-line arguments: "
+                  << error.what() << "\nPlease use --help to see help message\n";
+        throw Error{};
+    }
+
+    std::size_t block_size = var_map["size"].as<std::size_t>();
+    if (block_size == 0)
+    {
+        std::cerr << "Block size must be at least 1\n";
+        throw Error{};
+    }
+
+    return Context{block_size};
 }
 
-template <typename T, std::size_t dimensions>
-void iterate(const homework_6::Matrix<T, dimensions>& m)
+int main(int argc, char* argv[])
 {
-    std::size_t i = 0;
-    for (const auto& [index, elem] : m)
-    {
-        std::cout << std::setw(2) << i << ": " << index << ": " << elem << std::endl;
-        ++i;
-    }
-}
+    std::ios::sync_with_stdio(false);
 
-int main()
-{
-    homework_6::Matrix<int, 2> matrix(0);
-    for (std::size_t i = 0; i < 10; ++i)
+    Context context;
+    try
     {
-        matrix[i][i] = i;
-        matrix[i][9 - i] = 9 - i;
+        context = parse_command_options(argc, argv);
     }
-
-    for (std::size_t i = 1; i <= 8; ++i)
+    catch (const Help&)
     {
-        for (std::size_t j = 1; j <= 8; ++j)
-            std::cout << matrix[i][j] << ' ';
-        std::cout << '\n';
+        return 0;
+    }
+    catch (const Error&)
+    {
+        return 1;
     }
 
-    std::cout << "size = " << matrix.size() << std::endl;
-    iterate(matrix);
+    my::ConsoleWriter console_writer;
+    my::FileWriter file_writer("bulk", ".log");
+    my::DummyCommandProcessor bulk_command_processor;
+    my::CommandStorage command_storage;
+    my::ConsoleReader console_reader(context.block_size);
+
+    bulk_command_processor.add_writer(&console_writer);
+    bulk_command_processor.add_writer(&file_writer);
+    command_storage.add_processor(&bulk_command_processor);
+    console_reader.add_storage(&command_storage);
+
+    console_reader.read();
 }

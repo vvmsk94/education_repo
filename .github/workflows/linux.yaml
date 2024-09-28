@@ -3,7 +3,7 @@ name: Linux
 on:
   push:
   pull_request:
-    branches: [ homework_6 ]
+    branches: [ homework_7 ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)

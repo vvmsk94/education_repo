@@ -1,116 +1,137 @@
-#include "matrix.h"
+#include "dummy_command_processor.h"
+#include "command_storage.h"
+#include "console_reader.h"
+#include "console_writer.h"
 
 #include <gtest/gtest.h>
 
-#include <vector>
-#include <unordered_map>
+#include <sstream>
+#include <tuple>
+#include <string>
 
-TEST(MatrixIndexing, 2D)
+struct BulkTestParam
+    : public ::testing::TestWithParam
+    <
+        std::tuple
+        <
+            std::string,
+            std::string,
+            std::size_t
+        >
+    >
 {
-    homework_6::Matrix<int, 2> m(5);
-    m[1][1] = m[0][2] = 2;
-    m[0][2] = m[100][100] = m[1][1] = 5;
-    m[30][45] = (m[1][10] = 8) = 2;
-    m[2][2] = 10;
+    std::string input;
+    std::string output;
+    std::size_t block_size;
+};
 
-    EXPECT_EQ(m[1][1], 5);
-    EXPECT_EQ(m[0][2], 5);
-    EXPECT_EQ(m[100][100], 5);
-    EXPECT_EQ(m[1][10], 2);
-    EXPECT_EQ(m[30][45], 2);
-    EXPECT_EQ(m[2][2], 10);
-
-    EXPECT_EQ(m.size(), 3);
-}
-
-TEST(MatrixAt, 2D)
+TEST_P(BulkTestParam, TestOutput)
 {
-    homework_6::Matrix<int, 2> m(5);
-    m.at({1, 1}) = m.at({0, 2}) = 2;
-    m.at({0, 2}) = m.at({100, 100}) = m.at({1, 1}) = 5;
-    m.at({30, 45}) = (m.at({1, 10}) = 8) = 2;
-    m.at({2, 2}) = 10;
+    const std::string& str     = std::get<0>(GetParam());
+    const std::string& correct = std::get<1>(GetParam());
+    std::size_t block_size     = std::get<2>(GetParam());
 
-    EXPECT_EQ(m.at({1, 1}), 5);
-    EXPECT_EQ(m.at({0, 2}), 5);
-    EXPECT_EQ(m.at({100, 100}), 5);
-    EXPECT_EQ(m.at({1, 10}), 2);
-    EXPECT_EQ(m.at({30, 45}), 2);
-    EXPECT_EQ(m.at({2, 2}), 10);
+    std::istringstream input(str);
 
-    EXPECT_EQ(m.size(), 3);
-}
+    testing::internal::CaptureStdout();
 
-TEST(MatrixGeneral, 2D)
-{
-    homework_6::Matrix<int, 2> m(0);
-    std::vector<std::vector<int>> v(10, std::vector<int>(10));
-    for (std::size_t i = 0; i < 10; ++i)
     {
-        v[i][i] = m[i][i] = i;
-        v[i][9 - i] = m[i][9 - i] = 9 - i;
+        my::ConsoleWriter console_writer;
+        my::DummyCommandProcessor bulk_command_processor;
+        my::CommandStorage command_storage;
+        my::ConsoleReader console_reader(block_size, input);
+
+        bulk_command_processor.add_writer(&console_writer);
+        command_storage.add_processor(&bulk_command_processor);
+        console_reader.add_storage(&command_storage);
+
+        console_reader.read();
     }
 
-    for (std::size_t i = 0; i < 10; ++i)
-    {
-        for (std::size_t j = 0; j < 10; ++j)
-        {
-            EXPECT_EQ(v[i][j], m[i][j]);
-            EXPECT_EQ(v[i][j], m.at({i, j}));
-        }
-    }
-
-    EXPECT_EQ(m.size(), 18);
-    std::map<std::array<std::size_t, 2>, int> values;
-
-    for (const auto& elem : m)
-        values.emplace(elem);
-
-    EXPECT_EQ(m.size(), 18);
-    EXPECT_EQ(values.size(), 18);
-
-    for (std::size_t i = 0; i < 10; ++i)
-    {
-        if (i != 0)
-        {
-            auto it = values.find({i, i});
-            EXPECT_NE(it, values.end());
-            EXPECT_EQ(it->second, i);
-        }
-        if (i != 9)
-        {
-            auto it = values.find({i, 9 - i});
-            EXPECT_NE(it, values.end());
-            EXPECT_EQ(it->second, 9 - i);
-        }
-    }
+    std::string output = testing::internal::GetCapturedStdout();
+    EXPECT_EQ(correct, output);
 }
 
-TEST(MatrixGeneral, 10D)
-{
-    homework_6::Matrix<int, 10> m(0);
+INSTANTIATE_TEST_CASE_P
+(
+    Bulk,
+    BulkTestParam,
+    ::testing::Values
+    (
+        std::make_tuple
+        (
+            "cmd1\n"
+            "cmd2\n"
+            "cmd3\n"
+            "cmd4\n"
+            "cmd5",
 
-    int& e1 = m.at({1, 2, 3, 4, 5, 6, 7, 8, 9, 10}) = 11;
-    int& e2 = m.at({10, 9, 8, 7, 6, 5, 4, 3, 2, 1}) = 0;
-    EXPECT_EQ(m.size(), 1);
+            "bulk: cmd1, cmd2, cmd3\n"
+            "bulk: cmd4, cmd5\n",
 
-    e1 = 0;
-    e2 = 1;
-    EXPECT_EQ(m.size(), 1);
+             3
+        ),
+        std::make_tuple
+        (
+            "cmd1"    "\n"
+            "cmd2"    "\n"
+            "cmd3"    "\n"
+            "cmd4"    "\n"
+            "cmd5"    "\n"
+            "{"       "\n"
+            "cmd6"    "\n"
+            "cmd7"    "\n"
+            "{"       "\n"
+            "cmd8"    "\n"
+            "cmd9"    "\n"
+            "cmd10"   "\n"
+            "}"       "\n"
+            "cmd11"   "\n"
+            "{"       "\n"
+            "}"       "\n"
+            "}"       "\n"
+            "cmd12",
 
-    e1 = 10;
-    e2 = 15;
-    EXPECT_EQ(m.size(), 2);
+            "bulk: cmd1, cmd2, cmd3, cmd4\n"
+            "bulk: cmd5\n"
+            "bulk: cmd6, cmd7, cmd8, cmd9, cmd10, cmd11\n"
+            "bulk: cmd12\n",
 
-    m.shrink_to_fit();
-    EXPECT_EQ(m.size(), 2);
+            4
+        ),
+        std::make_tuple
+        (
+            "cmd1"    "\n"
+            "cmd2"    "\n"
+            "{"       "\n"
+            "cmd3"    "\n"
+            "cmd4"    "\n"
+            "cmd5"    "\n"
+            "cmd6",
 
-    e1 = e2 = 0;
-    EXPECT_EQ(m.size(), 0);
+            "bulk: cmd1\n"
+            "bulk: cmd2\n",
 
-    m.shrink_to_fit();
-    EXPECT_EQ(m.size(), 0);
-}
+            1
+        ),
+        std::make_tuple
+        (
+            "{"       "\n"
+            "cmd1"    "\n"
+            "cmd2"    "\n"
+            "cmd3"    "\n"
+            "{"       "\n"
+            "cmd4"    "\n"
+            "cmd5"    "\n"
+            "}"       "\n"
+            "cmd6",
+
+            "",
+
+            1
+        )
+    )
+);
 
 int main(int argc, char* argv[])
 {
