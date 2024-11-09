@@ -1,98 +1,109 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.2)
 
-if(DEFINED ENV{GITHUB_RUN_NUMBER})
-  set(PATCH_NUM $ENV{GITHUB_RUN_NUMBER})
+
+if(DEFINED ENV{TRAVIS_BUILD_NUMBER})
+    project(11-async VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
 else()
-  set(PATCH_NUM 0)
+    project(11-async VERSION 0.0.1)
 endif()
-
-project(ip_filter
-  LANGUAGES CXX
-  VERSION 0.0.${PATCH_NUM}
-)
-
-set(CMAKE_BUILD_TYPE Debug)
 
 configure_file(version.h.in version.h)
-include_directories(${CMAKE_BINARY_DIR})
+find_package(GTest REQUIRED)
+find_package(Boost COMPONENTS COMPONENTS program_options REQUIRED)
 
-option(BUILD_TESTS "Build unittests" OFF)
+set(INTERFACES
+    src/include/interfaces/command.h
+    src/include/interfaces/processor.h
+    src/include/interfaces/reader.h
+    src/include/interfaces/storage.h
+    src/include/interfaces/writer.h)
 
-add_executable(ip_filter
-			         src/main.cpp
-			         src/IpFilter.h
-			         src/IpFilter.cpp
+set(HEADERS ${INTERFACES}
+    src/include/dummy_command.h
+    src/include/dummy_command_processor.h
+    src/include/command_storage.h
+    src/include/console_reader.h
+    src/include/console_writer.h
+    src/include/file_writer.h
+    src/include/thread_pool.h
+    src/include/stats.h)
+
+set(SOURCES
+    src/logic/command.cpp
+    src/logic/dummy_command.cpp
+    src/logic/dummy_command_processor.cpp
+    src/logic/command_storage.cpp
+    src/logic/console_reader.cpp
+    src/logic/console_writer.cpp
+    src/logic/file_writer.cpp
+    src/thread/thread_pool.cpp)
+
+add_executable(bulkmt src/main.cpp)
+add_executable(tests src/tests.cpp)
+
+add_library(async SHARED lib/async.cpp lib/async.h ${SOURCES} ${HEADERS})
+add_executable(async_cli src/client.cpp)
+
+target_link_libraries(async_cli async)
+
+set_target_properties(bulkmt tests async async_cli PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
 )
 
-target_compile_features(ip_filter PUBLIC cxx_std_14)
+# add version.h
+target_include_directories(bulkmt PRIVATE "${CMAKE_BINARY_DIR}" src/include)
+target_link_libraries(bulkmt PRIVATE Boost::program_options pthread stdc++fs async)
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ip_filter.tsv
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Debug)
-	 
+target_include_directories(async PRIVATE "${CMAKE_BINARY_DIR}" src/include)
+target_link_libraries(async PRIVATE pthread stdc++fs)
 
-if(BUILD_TESTS)
-    enable_testing()
-	
-	# Test target
-	add_executable(
-    Hello
-    my_tests/test_hello.cpp
-	)
+target_include_directories(tests PRIVATE ${GTest_INCLUDE_DIR} src/include lib)
+target_link_libraries(tests PRIVATE gtest pthread stdc++fs async)
 
-	# Add src to the include directories for the test target
-	target_include_directories(
-    Hello PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
-	)
+target_include_directories(async_cli PRIVATE "${CMAKE_BINARY_DIR}" lib)
 
-	# Link test target against gtest libraries
-	target_link_libraries(
-    Hello PRIVATE
-    gtest gtest_main
-	)
-	
-	add_subdirectory(
-		"${CMAKE_CURRENT_SOURCE_DIR}/googletests"
-		"googletests"
-	)
-	if (MSVC)
-		# @see https://github.com/google/googletest/blob/master/googletest/README.md
-		# Visual Studio Dynamic vs Static Runtimes
-		set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-	
-		target_compile_options(
-			ip_filter PRIVATE
-			/W4
-		)
-		target_compile_options(
-			Hello PRIVATE
-			/W4
-		)
-  else ()
-    target_compile_options(
-        ip_filter PRIVATE
-        -Wall -Wextra -pedantic -Werror
+if(MSVC)
+    target_compile_options(bulkmt PRIVATE
+        /W4
     )
-    target_compile_options(
-        Hello PRIVATE
-        -Wall -Wextra -pedantic -Werror
+    target_compile_options(tests PRIVATE
+        /W4
     )
-	endif()
+    target_compile_options(async PRIVATE
+        /W4
+    )
+    target_compile_options(async_cli PRIVATE
+        /W4
+    )
+else()
+    target_compile_options(bulkmt PRIVATE
+        -Werror -Wall -Wimplicit-fallthrough -pedantic-errors
+    )
+    target_compile_options(tests PRIVATE
+        -Wall -Wimplicit-fallthrough -pedantic-errors
+    )
+    target_compile_options(async PRIVATE
+        -Werror -Wall -Wimplicit-fallthrough -pedantic-errors
+    )
+    target_compile_options(async_cli PRIVATE
+        -Werror -Wall -Wimplicit-fallthrough -pedantic-errors
+    )
 endif()
 
-install(TARGETS ip_filter RUNTIME DESTINATION bin)
-set(targetDestDir "bin")
+install(TARGETS async LIBRARY DESTINATION bin)
+
 set(CPACK_GENERATOR DEB)
+
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 
 set(CPACK_PACKAGE_CONTACT example@example.com)
 
-install(
-    FILES "${CMAKE_CURRENT_SOURCE_DIR}/ip_filter.tsv" "${CMAKE_CURRENT_SOURCE_DIR}/ip_filter.tsv"
-    DESTINATION "${targetDestDir}"
-)
-
 include(CPack)
 
+
+enable_testing()
+add_test(tests tests)
