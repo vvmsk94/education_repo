@@ -1,98 +1,77 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.2)
 
-if(DEFINED ENV{GITHUB_RUN_NUMBER})
-  set(PATCH_NUM $ENV{GITHUB_RUN_NUMBER})
+
+if(DEFINED ENV{TRAVIS_BUILD_NUMBER})
+    project(14-yamr VERSION 0.0.$ENV{TRAVIS_BUILD_NUMBER})
 else()
-  set(PATCH_NUM 0)
+    project(14-yamr VERSION 0.0.1)
 endif()
-
-project(ip_filter
-  LANGUAGES CXX
-  VERSION 0.0.${PATCH_NUM}
-)
-
-set(CMAKE_BUILD_TYPE Debug)
 
 configure_file(version.h.in version.h)
-include_directories(${CMAKE_BINARY_DIR})
+find_package(GTest REQUIRED)
+find_package(Boost COMPONENTS COMPONENTS program_options REQUIRED)
 
-option(BUILD_TESTS "Build unittests" OFF)
+set(HEADERS
+    src/thread_pool.h
+    src/controller.h
+    src/mapper.h
+    src/reducer.h
+    src/splitter.h)
 
-add_executable(ip_filter
-			         src/main.cpp
-			         src/IpFilter.h
-			         src/IpFilter.cpp
+set(SOURCES
+    src/thread_pool.cpp
+    src/controller.cpp
+    src/mapper.cpp
+    src/reducer.cpp
+    src/splitter.cpp)
+
+add_executable(14-yamr src/main.cpp ${SOURCES} ${HEADERS})
+add_executable(tests src/tests.cpp ${SOURCES} ${HEADERS})
+
+file(COPY data DESTINATION "${CMAKE_BINARY_DIR}")
+
+set_target_properties(14-yamr tests PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
 )
 
-target_compile_features(ip_filter PUBLIC cxx_std_14)
+# add version.h
+target_include_directories(14-yamr PRIVATE "${CMAKE_BINARY_DIR}")
+target_link_libraries(14-yamr PRIVATE pthread Boost::program_options)
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/ip_filter.tsv
-     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Debug)
-	 
+target_include_directories(tests PRIVATE ${GTest_INCLUDE_DIR})
+target_link_libraries(tests PRIVATE gtest pthread)
 
-if(BUILD_TESTS)
-    enable_testing()
-	
-	# Test target
-	add_executable(
-    Hello
-    my_tests/test_hello.cpp
-	)
-
-	# Add src to the include directories for the test target
-	target_include_directories(
-    Hello PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
-	)
-
-	# Link test target against gtest libraries
-	target_link_libraries(
-    Hello PRIVATE
-    gtest gtest_main
-	)
-	
-	add_subdirectory(
-		"${CMAKE_CURRENT_SOURCE_DIR}/googletests"
-		"googletests"
-	)
-	if (MSVC)
-		# @see https://github.com/google/googletest/blob/master/googletest/README.md
-		# Visual Studio Dynamic vs Static Runtimes
-		set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-	
-		target_compile_options(
-			ip_filter PRIVATE
-			/W4
-		)
-		target_compile_options(
-			Hello PRIVATE
-			/W4
-		)
-  else ()
-    target_compile_options(
-        ip_filter PRIVATE
-        -Wall -Wextra -pedantic -Werror
+if(MSVC)
+    target_compile_options(14-yamr PRIVATE
+        /W4
     )
-    target_compile_options(
-        Hello PRIVATE
-        -Wall -Wextra -pedantic -Werror
+    target_compile_options(tests PRIVATE
+        /W4
     )
-	endif()
+else()
+    target_compile_options(14-yamr PRIVATE
+        -Werror -Wall -Wimplicit-fallthrough -pedantic-errors
+    )
+    target_compile_options(tests PRIVATE
+        -Werror -Wall -Wimplicit-fallthrough -pedantic-errors
+    )
 endif()
 
-install(TARGETS ip_filter RUNTIME DESTINATION bin)
-set(targetDestDir "bin")
+
+install(TARGETS 14-yamr RUNTIME DESTINATION bin)
+
 set(CPACK_GENERATOR DEB)
+
 set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
 
 set(CPACK_PACKAGE_CONTACT example@example.com)
 
-install(
-    FILES "${CMAKE_CURRENT_SOURCE_DIR}/ip_filter.tsv" "${CMAKE_CURRENT_SOURCE_DIR}/ip_filter.tsv"
-    DESTINATION "${targetDestDir}"
-)
-
 include(CPack)
 
+
+enable_testing()
+add_test(tests tests)
